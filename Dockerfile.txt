@@ -1,0 +1,20 @@
+# Stage 1: Build React frontend
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app
+COPY package*.json tsconfig.json vite.config.ts index.html ./
+COPY src/ ./src
+COPY assets/ ./assets
+RUN npm ci
+RUN npm run build
+
+# Stage 2: Run Python Flask server and serve built frontend
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+COPY --from=frontend-builder /app/dist ./dist
+COPY server.py ./
+RUN mkdir -p data bot_states cache
+
+EXPOSE 5000
+CMD ["python", "server.py"]
